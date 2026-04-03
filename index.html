@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopX - Premium Ecommerce</title>
+  <meta name="description" content="Discover trendy products at ShopX. Shop the latest styles with amazing discounts on sneakers, headphones, watches and more.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif'],
+            body: ['DM Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: { 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' },
+            rose: { 500: '#f43f5e', 600: '#e11d48' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; }
+    h1,h2,h3,h4,h5,h6 { font-family: 'Space Grotesk', sans-serif; }
+    .glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); }
+    .gradient-hero { background: linear-gradient(135deg, #f5f3ff, #fce7f3, #eff6ff); }
+    .gradient-primary { background: linear-gradient(135deg, #8b5cf6, #f43f5e); }
+    .card-shadow { box-shadow: 0 8px 32px rgba(139,92,246,0.08); }
+    .card-shadow-hover:hover { box-shadow: 0 16px 48px rgba(139,92,246,0.16); }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    @keyframes fadeInUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse-glow { 0%,100%{box-shadow:0 0 20px rgba(139,92,246,0.3)} 50%{box-shadow:0 0 40px rgba(139,92,246,0.5)} }
+    .animate-float { animation: float 3s ease-in-out infinite; }
+    .animate-fade-in { animation: fadeInUp 0.6s ease-out forwards; }
+    .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+    .product-card { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .product-card:hover { transform: translateY(-8px); }
+    .product-card:hover img { transform: scale(1.05); }
+    .product-card img { transition: transform 0.5s ease; }
+    .category-card { transition: all 0.3s ease; }
+    .category-card:hover { transform: scale(1.05); }
+    .btn-primary { background: linear-gradient(135deg, #8b5cf6, #f43f5e); transition: all 0.3s ease; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(139,92,246,0.3); }
+    .nav-link { position: relative; }
+    .nav-link::after { content:''; position:absolute; bottom:-2px; left:0; width:0; height:2px; background:linear-gradient(90deg,#8b5cf6,#f43f5e); transition:width 0.3s; }
+    .nav-link:hover::after { width:100%; }
+    .badge-new { background: linear-gradient(135deg, #8b5cf6, #f43f5e); }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Cart sidebar */
+    .cart-overlay { opacity:0; pointer-events:none; transition:opacity 0.3s; }
+    .cart-overlay.active { opacity:1; pointer-events:auto; }
+    .cart-panel { transform:translateX(100%); transition:transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .cart-panel.active { transform:translateX(0); }
+
+    /* Toast */
+    .toast { transform:translateY(100px); opacity:0; transition:all 0.4s ease; }
+    .toast.show { transform:translateY(0); opacity:1; }
+  </style>
+</head>
+<body class="gradient-hero min-h-screen">
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast fixed bottom-6 right-6 z-50 glass rounded-2xl px-6 py-4 flex items-center gap-3 card-shadow">
+    <span class="text-2xl">✅</span>
+    <span class="font-medium text-gray-800" id="toast-text">Added to cart!</span>
+  </div>
+
+  <!-- Cart Overlay -->
+  <div id="cart-overlay" class="cart-overlay fixed inset-0 bg-black/30 z-40" onclick="toggleCart()"></div>
+
+  <!-- Cart Sidebar -->
+  <div id="cart-panel" class="cart-panel fixed top-0 right-0 h-full w-full max-w-md bg-white z-50 flex flex-col">
+    <div class="flex items-center justify-between p-6 border-b">
+      <h3 class="text-xl font-display font-bold">Your Cart</h3>
+      <button onclick="toggleCart()" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition">✕</button>
+    </div>
+    <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-4">
+      <p class="text-gray-400 text-center py-12">Your cart is empty</p>
+    </div>
+    <div id="cart-footer" class="border-t p-6 hidden">
+      <div class="flex justify-between mb-4">
+        <span class="text-gray-600">Total</span>
+        <span class="font-display font-bold text-xl" id="cart-total">$0</span>
+      </div>
+      <button class="btn-primary w-full text-white py-3 rounded-2xl font-semibold text-lg">Checkout</button>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="glass sticky top-0 z-30 border-b border-white/20">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-8">
+        <h1 class="text-2xl font-display font-bold">
+          <span class="bg-clip-text text-transparent" style="background:linear-gradient(135deg,#8b5cf6,#f43f5e)">ShopX</span>
+        </h1>
+        <div class="hidden md:flex gap-6 text-sm font-medium text-gray-600">
+          <a href="#" class="nav-link hover:text-gray-900">New Arrivals</a>
+          <a href="#" class="nav-link hover:text-gray-900">Trending</a>
+          <a href="#categories" class="nav-link hover:text-gray-900">Categories</a>
+          <a href="#" class="nav-link hover:text-gray-900">Deals</a>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="hidden sm:flex items-center bg-gray-100/80 rounded-2xl px-4 py-2 gap-2 focus-within:ring-2 focus-within:ring-brand-500/30 transition">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" placeholder="Search products..." class="bg-transparent outline-none text-sm w-40 placeholder:text-gray-400" id="search-input" oninput="filterProducts()">
+        </div>
+        <button class="w-10 h-10 rounded-full bg-gray-100/80 flex items-center justify-center hover:bg-gray-200 transition">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+        </button>
+        <button onclick="toggleCart()" class="relative w-10 h-10 rounded-full bg-gray-100/80 flex items-center justify-center hover:bg-gray-200 transition">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+          <span id="cart-count" class="absolute -top-1 -right-1 w-5 h-5 badge-new text-white text-xs rounded-full flex items-center justify-center font-bold hidden">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="max-w-7xl mx-auto px-6 py-20 flex flex-col lg:flex-row items-center gap-12">
+    <div class="flex-1 animate-fade-in">
+      <div class="inline-flex items-center gap-2 bg-white/60 backdrop-blur rounded-full px-4 py-1.5 text-sm font-medium text-brand-600 mb-6">
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        New Season Collection
+      </div>
+      <h2 class="text-5xl md:text-7xl font-display font-bold leading-tight">
+        Discover<br>
+        <span class="bg-clip-text text-transparent" style="background:linear-gradient(135deg,#8b5cf6,#f43f5e)">Trendy</span><br>
+        Products
+      </h2>
+      <p class="mt-6 text-lg text-gray-500 max-w-md leading-relaxed">Shop the latest styles with amazing discounts. Premium quality, curated by experts.</p>
+      <div class="mt-8 flex gap-4">
+        <a href="#products" class="btn-primary text-white px-8 py-3 rounded-2xl font-semibold inline-flex items-center gap-2">
+          Explore Now
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+        <a href="#" class="px-8 py-3 rounded-2xl font-semibold border-2 border-gray-200 text-gray-700 hover:border-brand-500 hover:text-brand-600 transition inline-flex items-center gap-2">
+          View Lookbook
+        </a>
+      </div>
+      <div class="mt-10 flex gap-8">
+        <div><span class="font-display text-2xl font-bold">2K+</span><br><span class="text-sm text-gray-400">Products</span></div>
+        <div><span class="font-display text-2xl font-bold">15K+</span><br><span class="text-sm text-gray-400">Happy Customers</span></div>
+        <div><span class="font-display text-2xl font-bold">4.9</span><br><span class="text-sm text-gray-400">Rating</span></div>
+      </div>
+    </div>
+    <div class="flex-1 relative" style="animation:fadeInUp 0.8s ease-out">
+      <div class="w-80 h-80 md:w-96 md:h-96 rounded-full" style="background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(244,63,94,0.1))"></div>
+      <div class="absolute top-4 right-4 glass rounded-2xl p-4 card-shadow animate-float" style="animation-delay:0.5s">
+        <div class="text-3xl">👟</div>
+        <span class="text-xs font-semibold text-gray-600">Best Seller</span>
+      </div>
+      <div class="absolute bottom-8 left-0 glass rounded-2xl p-4 card-shadow animate-float" style="animation-delay:1s">
+        <div class="text-3xl">🔥</div>
+        <span class="text-xs font-semibold text-gray-600">Hot Deal</span>
+      </div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 glass rounded-2xl p-3 card-shadow animate-float">
+        <div class="flex items-center gap-2">
+          <span class="text-yellow-400">★★★★★</span>
+          <span class="text-sm font-bold">4.9</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section id="categories" class="max-w-7xl mx-auto px-6 py-16">
+    <div class="flex justify-between items-end mb-8">
+      <div>
+        <h3 class="text-3xl font-display font-bold">Shop by Category</h3>
+        <p class="text-gray-400 mt-1">Find what you need</p>
+      </div>
+      <a href="#" class="text-sm font-medium text-brand-600 hover:underline">View All →</a>
+    </div>
+    <div class="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
+      <div class="category-card flex-shrink-0 w-36 h-40 rounded-3xl flex flex-col items-center justify-center gap-3 cursor-pointer" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe)">
+        <span class="text-4xl">👟</span>
+        <span class="font-semibold text-sm text-gray-700">Footwear</span>
+      </div>
+      <div class="category-card flex-shrink-0 w-36 h-40 rounded-3xl flex flex-col items-center justify-center gap-3 cursor-pointer" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8)">
+        <span class="text-4xl">🎧</span>
+        <span class="font-semibold text-sm text-gray-700">Audio</span>
+      </div>
+      <div class="category-card flex-shrink-0 w-36 h-40 rounded-3xl flex flex-col items-center justify-center gap-3 cursor-pointer" style="background:linear-gradient(135deg,#eff6ff,#dbeafe)">
+        <span class="text-4xl">⌚</span>
+        <span class="font-semibold text-sm text-gray-700">Watches</span>
+      </div>
+      <div class="category-card flex-shrink-0 w-36 h-40 rounded-3xl flex flex-col items-center justify-center gap-3 cursor-pointer" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+        <span class="text-4xl">🎒</span>
+        <span class="font-semibold text-sm text-gray-700">Bags</span>
+      </div>
+      <div class="category-card flex-shrink-0 w-36 h-40 rounded-3xl flex flex-col items-center justify-center gap-3 cursor-pointer" style="background:linear-gradient(135deg,#fefce8,#fef9c3)">
+        <span class="text-4xl">🕶️</span>
+        <span class="font-semibold text-sm text-gray-700">Eyewear</span>
+      </div>
+      <div class="category-card flex-shrink-0 w-36 h-40 rounded-3xl flex flex-col items-center justify-center gap-3 cursor-pointer" style="background:linear-gradient(135deg,#fff7ed,#fed7aa)">
+        <span class="text-4xl">📱</span>
+        <span class="font-semibold text-sm text-gray-700">Tech</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Products -->
+  <section id="products" class="max-w-7xl mx-auto px-6 py-16">
+    <div class="flex justify-between items-end mb-8">
+      <div>
+        <h3 class="text-3xl font-display font-bold">Trending Now</h3>
+        <p class="text-gray-400 mt-1">Most popular picks this week</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="filterCategory('all')" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-900 text-white transition">All</button>
+        <button onclick="filterCategory('footwear')" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">Footwear</button>
+        <button onclick="filterCategory('audio')" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">Audio</button>
+        <button onclick="filterCategory('accessories')" class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">Accessories</button>
+      </div>
+    </div>
+    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    </div>
+  </section>
+
+  <!-- Banner -->
+  <section class="max-w-7xl mx-auto px-6 py-12">
+    <div class="rounded-3xl p-12 text-center relative overflow-hidden" style="background:linear-gradient(135deg,#8b5cf6,#ec4899,#f43f5e)">
+      <div class="absolute inset-0" style="background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2220%22 cy=%2230%22 r=%2225%22 fill=%22rgba(255,255,255,0.05)%22/><circle cx=%2280%22 cy=%2270%22 r=%2235%22 fill=%22rgba(255,255,255,0.05)%22/></svg>')"></div>
+      <div class="relative z-10">
+        <span class="inline-block bg-white/20 backdrop-blur text-white text-sm font-semibold px-4 py-1 rounded-full mb-4">Limited Time</span>
+        <h3 class="text-4xl md:text-5xl font-display font-bold text-white mb-4">Flash Sale — Up to 50% Off</h3>
+        <p class="text-white/80 mb-8 max-w-md mx-auto">Don't miss out on our biggest sale of the season. Premium products at unbeatable prices.</p>
+        <button class="bg-white text-gray-900 px-8 py-3 rounded-2xl font-semibold hover:bg-gray-100 transition transform hover:scale-105">Shop the Sale</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="max-w-7xl mx-auto px-6 py-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="glass rounded-3xl p-8 text-center card-shadow">
+        <div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe)">🚚</div>
+        <h4 class="font-display font-bold text-lg mb-2">Free Shipping</h4>
+        <p class="text-gray-400 text-sm">On orders over $50. Fast & reliable delivery worldwide.</p>
+      </div>
+      <div class="glass rounded-3xl p-8 text-center card-shadow">
+        <div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8)">🔄</div>
+        <h4 class="font-display font-bold text-lg mb-2">Easy Returns</h4>
+        <p class="text-gray-400 text-sm">30-day hassle-free returns. No questions asked.</p>
+      </div>
+      <div class="glass rounded-3xl p-8 text-center card-shadow">
+        <div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl" style="background:linear-gradient(135deg,#eff6ff,#dbeafe)">🔒</div>
+        <h4 class="font-display font-bold text-lg mb-2">Secure Payment</h4>
+        <p class="text-gray-400 text-sm">SSL encrypted checkout. Your data is always safe.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="max-w-7xl mx-auto px-6 py-16">
+    <div class="glass rounded-3xl p-12 text-center card-shadow">
+      <h3 class="text-3xl font-display font-bold mb-3">Stay in the Loop</h3>
+      <p class="text-gray-400 mb-8">Get exclusive deals and new arrivals straight to your inbox.</p>
+      <div class="flex max-w-md mx-auto gap-3">
+        <input type="email" placeholder="Enter your email" class="flex-1 bg-gray-100/80 rounded-2xl px-5 py-3 outline-none focus:ring-2 focus:ring-brand-500/30 text-sm">
+        <button class="btn-primary text-white px-6 py-3 rounded-2xl font-semibold">Subscribe</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-200/50 mt-12">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+        <div>
+          <h4 class="font-display font-bold text-lg mb-4">
+            <span class="bg-clip-text text-transparent" style="background:linear-gradient(135deg,#8b5cf6,#f43f5e)">ShopX</span>
+          </h4>
+          <p class="text-sm text-gray-400 leading-relaxed">Premium products curated for the modern lifestyle.</p>
+        </div>
+        <div>
+          <h5 class="font-semibold mb-3 text-gray-700">Shop</h5>
+          <div class="space-y-2 text-sm text-gray-400">
+            <p class="hover:text-gray-600 cursor-pointer transition">New Arrivals</p>
+            <p class="hover:text-gray-600 cursor-pointer transition">Best Sellers</p>
+            <p class="hover:text-gray-600 cursor-pointer transition">Sale</p>
+            <p class="hover:text-gray-600 cursor-pointer transition">Gift Cards</p>
+          </div>
+        </div>
+        <div>
+          <h5 class="font-semibold mb-3 text-gray-700">Support</h5>
+          <div class="space-y-2 text-sm text-gray-400">
+            <p class="hover:text-gray-600 cursor-pointer transition">Contact Us</p>
+            <p class="hover:text-gray-600 cursor-pointer transition">FAQs</p>
+            <p class="hover:text-gray-600 cursor-pointer transition">Shipping</p>
+            <p class="hover:text-gray-600 cursor-pointer transition">Returns</p>
+          </div>
+        </div>
+        <div>
+          <h5 class="font-semibold mb-3 text-gray-700">Follow Us</h5>
+          <div class="flex gap-3">
+            <span class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition">📸</span>
+            <span class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition">🐦</span>
+            <span class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition">📘</span>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-gray-200/50 pt-6 text-center">
+        <p class="text-sm text-gray-400">© 2026 ShopX. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const products = [
+      { id:1, name:'White Sneakers', price:49, originalPrice:79, category:'footwear', badge:'Best Seller', rating:4.9, reviews:128, emoji:'👟' },
+      { id:2, name:'Pro Headphones', price:79, originalPrice:129, category:'audio', badge:'Hot', rating:4.8, reviews:256, emoji:'🎧' },
+      { id:3, name:'Classic Watch', price:99, originalPrice:149, category:'accessories', badge:'New', rating:4.7, reviews:89, emoji:'⌚' },
+      { id:4, name:'Urban Backpack', price:39, originalPrice:59, category:'accessories', badge:null, rating:4.6, reviews:167, emoji:'🎒' },
+      { id:5, name:'Aviator Shades', price:29, originalPrice:49, category:'accessories', badge:'Sale', rating:4.5, reviews:203, emoji:'🕶️' },
+      { id:6, name:'Wireless Earbuds', price:59, originalPrice:89, category:'audio', badge:'Popular', rating:4.8, reviews:342, emoji:'🎵' },
+      { id:7, name:'Running Shoes', price:89, originalPrice:119, category:'footwear', badge:null, rating:4.7, reviews:178, emoji:'🏃' },
+      { id:8, name:'Smart Speaker', price:69, originalPrice:99, category:'audio', badge:'New', rating:4.4, reviews:95, emoji:'🔊' },
+    ];
+
+    let cart = [];
+    let currentFilter = 'all';
+
+    function renderProducts(filter='all', search='') {
+      const grid = document.getElementById('product-grid');
+      let filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
+      if (search) filtered = filtered.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+      
+      grid.innerHTML = filtered.map((p, i) => `
+        <div class="product-card bg-white rounded-3xl overflow-hidden card-shadow card-shadow-hover" data-category="${p.category}" style="animation:fadeInUp ${0.3 + i*0.1}s ease-out">
+          <div class="relative overflow-hidden bg-gray-50 aspect-square flex items-center justify-center">
+            <span class="text-7xl">${p.emoji}</span>
+            ${p.badge ? `<span class="absolute top-3 left-3 badge-new text-white text-xs px-3 py-1 rounded-full font-semibold">${p.badge}</span>` : ''}
+            <button onclick="addToWishlist(${p.id})" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur flex items-center justify-center hover:bg-white transition hover:scale-110">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            </button>
+            <button onclick="quickView(${p.id})" class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-4 py-2 rounded-full text-xs font-semibold opacity-0 group-hover:opacity-100 transition hover:bg-white" style="opacity:0" onmouseover="this.style.opacity=1" onmouseout="this.parentElement.addEventListener('mouseleave',()=>this.style.opacity=0)">Quick View</button>
+          </div>
+          <div class="p-5">
+            <div class="flex items-center gap-1 mb-2">
+              <span class="text-yellow-400 text-xs">★★★★★</span>
+              <span class="text-xs text-gray-400">${p.rating} (${p.reviews})</span>
+            </div>
+            <h4 class="font-display font-semibold text-lg">${p.name}</h4>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="font-display font-bold text-xl">$${p.price}</span>
+              <span class="text-sm text-gray-400 line-through">$${p.originalPrice}</span>
+              <span class="text-xs font-semibold text-green-500 ml-auto">${Math.round((1-p.price/p.originalPrice)*100)}% OFF</span>
+            </div>
+            <button onclick="addToCart(${p.id})" class="mt-4 w-full btn-primary text-white py-2.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addToCart(id) {
+      const product = products.find(p => p.id === id);
+      const existing = cart.find(c => c.id === id);
+      if (existing) existing.qty++;
+      else cart.push({...product, qty:1});
+      updateCartUI();
+      showToast(`${product.name} added to cart!`);
+    }
+
+    function removeFromCart(id) {
+      cart = cart.filter(c => c.id !== id);
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      const count = cart.reduce((s,c) => s + c.qty, 0);
+      const total = cart.reduce((s,c) => s + c.price * c.qty, 0);
+      const countEl = document.getElementById('cart-count');
+      const itemsEl = document.getElementById('cart-items');
+      const footerEl = document.getElementById('cart-footer');
+      const totalEl = document.getElementById('cart-total');
+
+      if (count > 0) {
+        countEl.textContent = count;
+        countEl.classList.remove('hidden');
+        footerEl.classList.remove('hidden');
+        totalEl.textContent = `$${total}`;
+        itemsEl.innerHTML = cart.map(c => `
+          <div class="flex items-center gap-4 bg-gray-50 rounded-2xl p-4">
+            <div class="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-3xl flex-shrink-0">${c.emoji}</div>
+            <div class="flex-1 min-w-0">
+              <h5 class="font-semibold text-sm truncate">${c.name}</h5>
+              <p class="text-sm text-gray-400">$${c.price} × ${c.qty}</p>
+            </div>
+            <button onclick="removeFromCart(${c.id})" class="text-gray-400 hover:text-red-500 transition text-lg">✕</button>
+          </div>
+        `).join('');
+      } else {
+        countEl.classList.add('hidden');
+        footerEl.classList.add('hidden');
+        itemsEl.innerHTML = '<p class="text-gray-400 text-center py-12">Your cart is empty</p>';
+      }
+    }
+
+    function toggleCart() {
+      document.getElementById('cart-overlay').classList.toggle('active');
+      document.getElementById('cart-panel').classList.toggle('active');
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-text').textContent = text;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function filterCategory(cat) {
+      currentFilter = cat;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.className = b.className.replace('bg-gray-900 text-white','bg-gray-100 text-gray-600');
+      });
+      event.target.className = event.target.className.replace('bg-gray-100 text-gray-600','bg-gray-900 text-white');
+      renderProducts(cat, document.getElementById('search-input').value);
+    }
+
+    function filterProducts() {
+      renderProducts(currentFilter, document.getElementById('search-input').value);
+    }
+
+    function addToWishlist(id) {
+      const product = products.find(p => p.id === id);
+      showToast(`${product.name} added to wishlist ❤️`);
+    }
+
+    function quickView(id) {
+      const product = products.find(p => p.id === id);
+      showToast(`Quick view: ${product.name}`);
+    }
+
+    // Init
+    renderProducts();
+  </script>
+</body>
+</html>
